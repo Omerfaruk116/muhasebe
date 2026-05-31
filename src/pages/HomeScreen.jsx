@@ -1,4 +1,5 @@
 import { useState } from "react";
+import InstallButton from "../components/InstallButton";
 
 const recoveryQuestions = [
   "En sevdiğin öğretmenin kim?",
@@ -457,6 +458,8 @@ function HomeScreen({ accounts, setAccounts, openAccount, resetAllData }) {
         <h1>Hesap Bilgilerim</h1>
         <span>Her profil kendi şifresiyle korunur.</span>
       </div>
+
+      <InstallButton />
 
       <div className="home-actions">
         <button onClick={() => setPage("create")}>+ Profil Oluştur</button>
