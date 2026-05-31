@@ -1,0 +1,654 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #020617;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: auto;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.25), transparent 35%),
+    #080d1f;
+}
+
+.auth-card,
+.brand-card {
+  background: linear-gradient(135deg, #172554, #064e3b);
+  padding: 24px;
+  border-radius: 28px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+
+.auth-card p,
+.brand-card p {
+  margin: 0;
+  color: #bfdbfe;
+}
+
+.auth-card h1,
+.brand-card h1 {
+  margin: 8px 0;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.auth-card span,
+.brand-card span {
+  color: #d1fae5;
+  font-size: 14px;
+}
+
+.error-text {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  padding: 10px;
+  border-radius: 12px;
+  margin: 0;
+}
+
+.subtitle {
+  color: #94a3b8;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.top button {
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 16px;
+  background: #111827;
+  color: white;
+  font-size: 22px;
+}
+
+.top p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.top h1 {
+  margin: 4px 0 0;
+  font-size: 25px;
+}
+
+.balance-box {
+  margin-top: 22px;
+  padding: 24px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #1d4ed8, #047857);
+  box-shadow: 0 20px 50px rgba(29, 78, 216, 0.22);
+}
+
+.balance-box p {
+  margin: 0;
+  color: #dbeafe;
+}
+
+.balance-box h2 {
+  font-size: 44px;
+  margin: 10px 0 16px;
+  letter-spacing: -1px;
+}
+
+.balance-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.balance-lines span {
+  background: rgba(255,255,255,0.12);
+  color: #ecfdf5;
+  padding: 10px 12px;
+  border-radius: 15px;
+  font-size: 14px;
+}
+
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.home-actions button,
+.menu-list button,
+.button-grid button,
+.form-card button,
+.danger-button,
+.section-head button,
+.backup-card button,
+.filter-card button,
+.record-actions button,
+.goal-actions button,
+.goal-saving-row button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 16px;
+  border-radius: 18px;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.menu-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.menu-list button {
+  background: #111827;
+  text-align: left;
+  box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.button-grid button {
+  background: #1e293b;
+  min-height: 76px;
+}
+
+.button-grid button:hover,
+.menu-list button:hover,
+.home-actions button:hover {
+  filter: brightness(1.12);
+}
+
+.helper-card {
+  margin-top: 20px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  padding: 15px;
+  border-radius: 18px;
+}
+
+.helper-card p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.form-card,
+.filter-card,
+.backup-card {
+  margin-top: 18px;
+  background: #111827;
+  padding: 18px;
+  border-radius: 24px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+}
+
+.form-card h2,
+.backup-card h2 {
+  margin: 0;
+}
+
+.backup-card p {
+  margin: 0;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.form-card input,
+.form-card select,
+.filter-card input,
+.backup-card input,
+.goal-saving-row input {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  background: #020617;
+  color: white;
+  font-size: 16px;
+  outline: none;
+}
+
+.form-card input:focus,
+.form-card select:focus,
+.filter-card input:focus,
+.goal-saving-row input:focus {
+  border-color: #2563eb;
+}
+
+.method-box {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.method-box p {
+  margin: 0 0 10px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.method-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.method-buttons button {
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  background: #1e293b;
+  color: white;
+  font-weight: bold;
+}
+
+.method-buttons button.method-active {
+  background: #22c55e;
+  color: #052e16;
+}
+
+.records {
+  margin-top: 22px;
+}
+
+.records h2 {
+  margin-bottom: 10px;
+}
+
+.record {
+  background: #111827;
+  padding: 16px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+}
+
+.record h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.record p {
+  margin: 5px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.record strong {
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+.edit-record {
+  align-items: flex-start;
+}
+
+.record-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.record-actions button {
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.record-actions button:last-child,
+.danger-mini-button,
+.goal-actions button:nth-child(2),
+.goal-actions button:nth-child(3) {
+  background: #7f1d1d !important;
+}
+
+.danger-mini-button {
+  border: none;
+  color: white;
+  padding: 14px;
+  border-radius: 16px;
+  font-weight: bold;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.summary-grid div {
+  background: #111827;
+  padding: 16px;
+  border-radius: 18px;
+  color: #94a3b8;
+}
+
+.summary-grid b {
+  display: block;
+  color: white;
+  margin-top: 8px;
+  font-size: 20px;
+}
+
+.borrowed-person {
+  background: #111827;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.borrowed-person b {
+  font-size: 20px;
+}
+
+.calendar-head {
+  margin-top: 20px;
+  background: #111827;
+  border-radius: 20px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-head h2 {
+  margin: 0;
+  text-transform: capitalize;
+  font-size: 18px;
+}
+
+.calendar-head button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: #1e293b;
+  color: white;
+  border-radius: 14px;
+  font-size: 18px;
+}
+
+.week-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.calendar-empty {
+  min-height: 58px;
+}
+
+.calendar-day {
+  min-height: 58px;
+  border: 1px solid #1e293b;
+  border-radius: 15px;
+  background: #0f172a;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 7px;
+}
+
+.selected-day {
+  border-color: #22c55e;
+  background: #13251f;
+}
+
+.calendar-day span {
+  font-size: 13px;
+  text-align: left;
+}
+
+.day-lines {
+  display: grid;
+  gap: 3px;
+}
+
+.day-blue,
+.day-red {
+  height: 4px;
+  border-radius: 99px;
+  display: block;
+}
+
+.day-blue {
+  background: #2563eb;
+}
+
+.day-red {
+  background: #dc2626;
+}
+
+.asset-main-card,
+.asset-overview-card {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #312e81, #064e3b);
+  border-radius: 28px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+}
+
+.asset-main-card p,
+.asset-overview-card p {
+  margin: 0;
+  color: #c7d2fe;
+}
+
+.asset-main-card h2,
+.asset-overview-card h2 {
+  margin: 8px 0 16px;
+  font-size: 34px;
+}
+
+.asset-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.asset-lines span {
+  background: rgba(255,255,255,0.12);
+  padding: 10px;
+  border-radius: 14px;
+  color: #ecfdf5;
+}
+
+.asset-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.asset-mini-grid div {
+  background: rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 12px;
+  color: #dbeafe;
+}
+
+.asset-mini-grid b {
+  display: block;
+  color: white;
+  margin-top: 6px;
+  font-size: 20px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.section-head button {
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.goal-hero {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #581c87, #1e3a8a);
+  padding: 22px;
+  border-radius: 28px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+}
+
+.goal-hero p {
+  margin: 0;
+  color: #ddd6fe;
+}
+
+.goal-hero h2 {
+  margin: 8px 0;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.goal-hero span {
+  color: #dbeafe;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.goal-card {
+  background: #111827;
+  border-radius: 24px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+}
+
+.goal-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.goal-top h3 {
+  margin: 0;
+}
+
+.goal-top p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.goal-top strong {
+  white-space: nowrap;
+  font-size: 20px;
+}
+
+.goal-progress {
+  margin-top: 14px;
+  height: 10px;
+  border-radius: 999px;
+  background: #020617;
+  overflow: hidden;
+}
+
+.goal-progress div {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e, #2563eb);
+}
+
+.goal-numbers {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.goal-numbers span {
+  color: #cbd5e1;
+  background: #020617;
+  padding: 9px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.goal-saving-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.goal-saving-row button {
+  padding: 0 16px;
+}
+
+.goal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.7fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.goal-actions button {
+  padding: 12px 8px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.memory-goal {
+  opacity: 0.88;
+  border: 1px solid #334155;
+}
+
+.danger-button {
+  margin-top: 22px;
+  width: 100%;
+  background: #7f1d1d;
+}

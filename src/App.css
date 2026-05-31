@@ -1,0 +1,40 @@
+.clickable {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.clickable:hover {
+  transform: translateY(-4px);
+}
+
+.back-btn {
+  border: none;
+  background: white;
+  color: #111827;
+  padding: 12px 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  background: white;
+  padding: 22px;
+  border-radius: 22px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+}
+
+.summary-card p {
+  margin: 0 0 10px;
+  color: #6b7280;
+}
+
+.summary-card strong {
+  font-size: 30px;
+}
