@@ -454,6 +454,19 @@ function HomeScreen({ accounts, setAccounts, openAccount, resetAllData }) {
   return (
     <div className="app">
       <div className="brand-card">
+        <img
+          src="/icon.svg"
+          alt="Kolay Muhasebe Logo"
+          style={{
+            width: "108px",
+            height: "108px",
+            borderRadius: "28px",
+            objectFit: "cover",
+            marginBottom: "14px",
+            boxShadow: "0 14px 34px rgba(0,0,0,0.35)",
+          }}
+        />
+
         <p>Kolay Muhasebe</p>
         <h1>Hesap Bilgilerim</h1>
         <span>Her profil kendi şifresiyle korunur.</span>
