@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import HomeScreen from "./pages/HomeScreen";
 import DetailScreen from "./pages/DetailScreen";
+import IntroScreen from "./components/IntroScreen";
 import { starterAccounts } from "./data/starterData";
 
 function addMonths(date, months) {
   const d = new Date(date);
   const day = d.getDate();
   const target = new Date(d.getFullYear(), d.getMonth() + months, 1);
-  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  const lastDay = new Date(
+    target.getFullYear(),
+    target.getMonth() + 1,
+    0
+  ).getDate();
 
   target.setDate(Math.min(day, lastDay));
 
@@ -112,6 +117,8 @@ function normalizeAccounts(list) {
 }
 
 function App() {
+  const [showIntro, setShowIntro] = useState(true);
+
   const [accounts, setAccounts] = useState(() => {
     const saved = localStorage.getItem("elTurcoFinanceAccounts");
 
@@ -165,9 +172,7 @@ function App() {
   function updateAccountSecurity(accountId, updates) {
     setAccounts(
       accounts.map((account) =>
-        account.id === accountId
-          ? { ...account, ...updates }
-          : account
+        account.id === accountId ? { ...account, ...updates } : account
       )
     );
   }
@@ -212,6 +217,10 @@ function App() {
     localStorage.removeItem("elTurcoFinanceAccounts");
     setAccounts([]);
     setSelectedAccountId(null);
+  }
+
+  if (showIntro) {
+    return <IntroScreen onFinish={() => setShowIntro(false)} />;
   }
 
   if (selectedAccount) {
