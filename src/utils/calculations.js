@@ -6,182 +6,197 @@ export const labels = {
   payment: "Ödeme",
   debt: "Borç",
   borrowed: "Emanet Para",
-  turkeyMoney: "TR’deki Para",
 };
 
 export const assetLabels = {
-  try: "Türk Lirası",
-  usd: "Dolar",
+  dollar: "Dolar",
+  tl: "Türk Lirası",
   quarterGold: "Çeyrek Altın",
   gramGold: "Gram Altın",
   bracelet: "Bilezik",
   otherGold: "Diğer Altın",
-  otherAsset: "Diğer Varlık",
 };
 
-export function totalByType(records, type) {
-  return records
-    .filter((item) => item.type === type)
-    .reduce((sum, item) => sum + Number(item.amount), 0);
+export function money(amount, currency = "USD") {
+  const value = Number(amount || 0);
+
+  if (currency === "TRY") {
+    return `₺${value.toLocaleString("tr-TR", {
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  return `$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+  })}`;
 }
 
-export function groupByTitle(records, types) {
-  const groups = {};
+function sumByType(records, type) {
+  return records
+    .filter((item) => item.type === type)
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+}
 
-  records
-    .filter((item) => types.includes(item.type))
-    .forEach((item) => {
-      const name = item.title || "İsimsiz";
-
-      if (!groups[name]) {
-        groups[name] = {
-          name,
-          total: 0,
-          type: item.type,
-        };
-      }
-
-      groups[name].total += Number(item.amount);
-    });
-
-  return Object.values(groups);
+function normalizeName(name) {
+  return String(name || "").trim().toLowerCase();
 }
 
 export function getReceiveTargets(records) {
-  const sources = groupByTitle(records, ["fixedIncome", "extraIncome"]);
+  const incomeRecords = records.filter(
+    (item) => item.type === "fixedIncome" || item.type === "extraIncome"
+  );
 
-  return sources.map((source) => {
-    const received = records
-      .filter(
-        (item) =>
-          item.type === "received" && item.receiveTarget === source.name
-      )
-      .reduce((sum, item) => sum + Number(item.amount), 0);
+  const receivedRecords = records.filter((item) => item.type === "received");
 
-    return {
-      ...source,
-      received,
-      remaining: Math.max(source.total - received, 0),
-    };
+  const map = {};
+
+  incomeRecords.forEach((item) => {
+    const name = item.title;
+    if (!name) return;
+
+    const key = normalizeName(name);
+
+    if (!map[key]) {
+      map[key] = {
+        name,
+        expected: 0,
+        received: 0,
+        remaining: 0,
+      };
+    }
+
+    map[key].expected += Number(item.amount || 0);
   });
+
+  receivedRecords.forEach((item) => {
+    const name = item.receiveTarget || item.title;
+    if (!name) return;
+
+    const key = normalizeName(name);
+
+    if (!map[key]) {
+      map[key] = {
+        name,
+        expected: 0,
+        received: 0,
+        remaining: 0,
+      };
+    }
+
+    map[key].received += Number(item.amount || 0);
+  });
+
+  return Object.values(map)
+    .map((item) => ({
+      ...item,
+      remaining: Math.max(0, item.expected - item.received),
+    }))
+    .filter((item) => item.remaining > 0);
 }
 
-export function getPaymentTargets(records, includeBorrowed = true) {
-  const types = includeBorrowed
-    ? ["fixedExpense", "debt", "borrowed"]
-    : ["fixedExpense", "debt"];
+export function getPaymentTargets(records) {
+  const debtRecords = records.filter(
+    (item) => item.type === "fixedExpense" || item.type === "debt"
+  );
 
-  const targets = groupByTitle(records, types);
+  const paymentRecords = records.filter((item) => item.type === "payment");
 
-  return targets.map((target) => {
-    const paid = records
-      .filter(
-        (item) =>
-          item.type === "payment" && item.paymentTarget === target.name
-      )
-      .reduce((sum, item) => sum + Number(item.amount), 0);
+  const map = {};
 
-    return {
-      ...target,
-      paid,
-      remaining: Math.max(target.total - paid, 0),
-    };
+  debtRecords.forEach((item) => {
+    const name = item.title;
+    if (!name) return;
+
+    const key = normalizeName(name);
+
+    if (!map[key]) {
+      map[key] = {
+        name,
+        debt: 0,
+        paid: 0,
+        remaining: 0,
+      };
+    }
+
+    map[key].debt += Number(item.amount || 0);
   });
+
+  paymentRecords.forEach((item) => {
+    const name = item.paymentTarget || item.title;
+    if (!name) return;
+
+    const key = normalizeName(name);
+
+    if (!map[key]) {
+      map[key] = {
+        name,
+        debt: 0,
+        paid: 0,
+        remaining: 0,
+      };
+    }
+
+    map[key].paid += Number(item.amount || 0);
+  });
+
+  return Object.values(map)
+    .map((item) => ({
+      ...item,
+      remaining: Math.max(0, item.debt - item.paid),
+    }))
+    .filter((item) => item.remaining > 0);
 }
 
 export function getBorrowedPeople(records) {
   const people = records
     .filter((item) => item.type === "borrowed")
-    .map((item) => item.title);
+    .map((item) => item.title)
+    .filter(Boolean);
 
   return [...new Set(people)];
 }
 
 export function getBorrowedRemaining(records, person) {
-  const borrowedTotal = records
+  const totalBorrowed = records
     .filter((item) => item.type === "borrowed" && item.title === person)
-    .reduce((sum, item) => sum + Number(item.amount), 0);
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
-  const paidBackTotal = records
-    .filter(
-      (item) => item.type === "payment" && item.paymentTarget === person
-    )
-    .reduce((sum, item) => sum + Number(item.amount), 0);
-
-  return Math.max(borrowedTotal - paidBackTotal, 0);
+  return totalBorrowed;
 }
 
-export function getPersonAssetsSummary(persons = []) {
-  const summary = {
-    usd: 0,
-    try: 0,
-    quarterGold: 0,
-    gramGold: 0,
-    bracelet: 0,
-    otherGold: 0,
-    otherAsset: 0,
-  };
+export function getSummary(records) {
+  const totalFixedIncome = sumByType(records, "fixedIncome");
+  const totalExtraIncome = sumByType(records, "extraIncome");
+  const totalReceived = sumByType(records, "received");
 
-  persons.forEach((person) => {
-    (person.assets || []).forEach((asset) => {
-      if (asset.kind === "usd") {
-        summary.usd += Number(asset.amount || 0);
-      } else if (asset.kind === "try") {
-        summary.try += Number(asset.amount || 0);
-      } else {
-        summary[asset.kind] += Number(asset.quantity || 0);
-      }
-    });
-  });
-
-  return summary;
-}
-
-export function getSummary(records, persons = []) {
-  const totalFixedIncome = totalByType(records, "fixedIncome");
-  const totalExtraIncome = totalByType(records, "extraIncome");
-  const totalFixedExpense = totalByType(records, "fixedExpense");
-  const totalReceived = totalByType(records, "received");
-  const totalPayment = totalByType(records, "payment");
-  const totalDebt = totalByType(records, "debt");
-  const totalBorrowed = totalByType(records, "borrowed");
-  const totalTurkeyMoney = totalByType(records, "turkeyMoney");
+  const totalFixedExpense = sumByType(records, "fixedExpense");
+  const totalDebt = sumByType(records, "debt");
+  const totalBorrowed = sumByType(records, "borrowed");
+  const totalPayment = sumByType(records, "payment");
 
   const incomeExpected = totalFixedIncome + totalExtraIncome;
-  const remaining = Math.max(incomeExpected - totalReceived, 0);
-
-  const paymentTargetsWithBorrowed = getPaymentTargets(records, true);
-  const mustPay = paymentTargetsWithBorrowed.reduce(
-    (sum, item) => sum + Number(item.remaining),
+  const paymentTargets = getPaymentTargets(records);
+  const mustPay = paymentTargets.reduce(
+    (sum, item) => sum + Number(item.remaining || 0),
     0
   );
 
-  const paymentTargetsWithoutBorrowed = getPaymentTargets(records, false);
-  const realDebtRemaining = paymentTargetsWithoutBorrowed.reduce(
-    (sum, item) => sum + Number(item.remaining),
-    0
-  );
-
-  const normalPocketMoney = incomeExpected - realDebtRemaining;
+  const remaining = Math.max(0, incomeExpected - totalReceived);
   const netBalance = totalReceived - totalPayment;
-
-  const personAssets = getPersonAssetsSummary(persons);
+  const totalRealDebt = totalFixedExpense + totalDebt;
 
   return {
     totalFixedIncome,
     totalExtraIncome,
-    totalFixedExpense,
     totalReceived,
-    totalPayment,
+    totalFixedExpense,
     totalDebt,
     totalBorrowed,
-    totalTurkeyMoney,
+    totalPayment,
+    totalRealDebt,
     incomeExpected,
     remaining,
     mustPay,
-    realDebtRemaining,
-    normalPocketMoney,
     netBalance,
-    personAssets,
   };
 }

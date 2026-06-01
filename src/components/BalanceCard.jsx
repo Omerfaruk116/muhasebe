@@ -1,12 +1,6 @@
 import { money } from "../utils/money";
 
-function BalanceCard({
-  netBalance,
-  remaining,
-  mustPay,
-  normalPocketMoney,
-  turkeyMoney,
-}) {
+function BalanceCard({ netBalance, remaining, mustPay, totalAssets }) {
   return (
     <div className="balance-box">
       <p>Net Bakiye</p>
@@ -15,8 +9,7 @@ function BalanceCard({
       <div className="balance-lines">
         <span>Kalan Alacak: {money(remaining)}</span>
         <span>Ödenmesi Gereken: {money(mustPay)}</span>
-        <span>Varlıklarım: {money(normalPocketMoney)}</span>
-        <span>TR’deki Para: {money(turkeyMoney, "TRY")}</span>
+        <span>Varlıklarım: {money(totalAssets)}</span>
       </div>
     </div>
   );

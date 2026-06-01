@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import Header from "../components/Header";
 import RecordCard from "../components/RecordCard";
-import { getSummary, labels } from "../utils/calculations";
-import { money } from "../utils/money";
+import { getSummary, labels, money } from "../utils/calculations";
 
 function MonthlySummaryPage({ records, goBack }) {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -11,7 +10,7 @@ function MonthlySummaryPage({ records, goBack }) {
     return records.filter((item) => item.date?.startsWith(month));
   }, [records, month]);
 
-  const summary = getSummary(monthRecords, []);
+  const summary = getSummary(monthRecords);
 
   return (
     <div className="app">
@@ -65,8 +64,8 @@ function MonthlySummaryPage({ records, goBack }) {
         </div>
 
         <div>
-          TR’deki Para
-          <b>{money(summary.totalTurkeyMoney, "TRY")}</b>
+          Ödeme
+          <b>{money(summary.totalPayment)}</b>
         </div>
       </div>
 

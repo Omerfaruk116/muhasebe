@@ -31,7 +31,7 @@ function DetailScreen({
   const records = account.records || [];
   const persons = account.persons || [];
   const goals = account.goals || [];
-  const summary = getSummary(records, persons);
+  const summary = getSummary(records);
 
   function openForm(type) {
     setActiveType(type);
@@ -78,13 +78,7 @@ function DetailScreen({
   }
 
   if (page === "summary") {
-    return (
-      <SummaryPage
-        records={records}
-        persons={persons}
-        goBack={() => setPage("menu")}
-      />
-    );
+    return <SummaryPage records={records} goBack={() => setPage("menu")} />;
   }
 
   if (page === "monthly") {
@@ -164,8 +158,7 @@ function DetailScreen({
         netBalance={summary.netBalance}
         remaining={summary.remaining}
         mustPay={summary.mustPay}
-        normalPocketMoney={summary.normalPocketMoney}
-        turkeyMoney={summary.totalTurkeyMoney}
+        totalAssets={summary.incomeExpected - summary.mustPay}
       />
 
       <div className="home-actions">

@@ -1,5 +1,4 @@
 import Header from "../components/Header";
-import { labels } from "../utils/calculations";
 
 function AddMenuPage({ goBack, openForm }) {
   return (
@@ -7,11 +6,13 @@ function AddMenuPage({ goBack, openForm }) {
       <Header title="İşlem Ekle" back={goBack} />
 
       <div className="button-grid">
-        {Object.keys(labels).map((type) => (
-          <button key={type} onClick={() => openForm(type)}>
-            {labels[type]}
-          </button>
-        ))}
+        <button onClick={() => openForm("fixedIncome")}>Sabit Gelir</button>
+        <button onClick={() => openForm("extraIncome")}>Ekstra Gelir</button>
+        <button onClick={() => openForm("fixedExpense")}>Sabit Gider</button>
+        <button onClick={() => openForm("received")}>Aldım</button>
+        <button onClick={() => openForm("payment")}>Ödeme</button>
+        <button onClick={() => openForm("debt")}>Borç</button>
+        <button onClick={() => openForm("borrowed")}>Emanet Para</button>
       </div>
     </div>
   );

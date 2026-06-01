@@ -1,13 +1,12 @@
 import Header from "../components/Header";
-import { getSummary } from "../utils/calculations";
-import { money } from "../utils/money";
+import { getSummary, money } from "../utils/calculations";
 
-function SummaryPage({ records, persons, goBack }) {
-  const summary = getSummary(records, persons);
+function SummaryPage({ records, goBack }) {
+  const summary = getSummary(records);
 
   return (
     <div className="app">
-      <Header title="Özetler" back={goBack} />
+      <Header title="Genel Özetler" back={goBack} />
 
       <div className="summary-grid">
         <div>
@@ -21,18 +20,18 @@ function SummaryPage({ records, persons, goBack }) {
         </div>
 
         <div>
-          Sabit Gider
-          <b>{money(summary.totalFixedExpense)}</b>
-        </div>
-
-        <div>
           Aldım
           <b>{money(summary.totalReceived)}</b>
         </div>
 
         <div>
-          Ödeme
-          <b>{money(summary.totalPayment)}</b>
+          Kalan Alacak
+          <b>{money(summary.remaining)}</b>
+        </div>
+
+        <div>
+          Sabit Gider
+          <b>{money(summary.totalFixedExpense)}</b>
         </div>
 
         <div>
@@ -41,23 +40,13 @@ function SummaryPage({ records, persons, goBack }) {
         </div>
 
         <div>
-          Emanet Para
-          <b>{money(summary.totalBorrowed)}</b>
-        </div>
-
-        <div>
-          TR’deki Para
-          <b>{money(summary.totalTurkeyMoney, "TRY")}</b>
-        </div>
-
-        <div>
           Ödenmesi Gereken
           <b>{money(summary.mustPay)}</b>
         </div>
 
         <div>
-          Varlıklarım
-          <b>{money(summary.normalPocketMoney)}</b>
+          Emanet Para
+          <b>{money(summary.totalBorrowed)}</b>
         </div>
       </div>
     </div>

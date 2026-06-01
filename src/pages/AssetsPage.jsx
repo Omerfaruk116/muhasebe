@@ -1,31 +1,183 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
-import {
-  assetLabels,
-  getPaymentTargets,
-  getSummary,
-} from "../utils/calculations";
-import { money } from "../utils/money";
+import { assetLabels, getSummary, money } from "../utils/calculations";
+
+function normalizeAssetType(type) {
+  const clean = String(type || "").toLowerCase();
+
+  if (clean === "usd" || clean === "dolar" || clean === "dollar") return "dollar";
+  if (clean === "try" || clean === "tl" || clean === "türk lirası") return "tl";
+  if (clean.includes("quarter") || clean.includes("çeyrek")) return "quarterGold";
+  if (clean.includes("gram")) return "gramGold";
+  if (clean.includes("bilezik")) return "bracelet";
+  if (clean.includes("other") || clean.includes("diğer")) return "otherGold";
+
+  return type || "dollar";
+}
+
+function getAssetAmount(asset) {
+  if (asset.amount !== undefined) return Number(asset.amount || 0);
+  if (asset.quantity !== undefined) return Number(asset.quantity || 0);
+  return 0;
+}
+
+function getPersonTotals(person) {
+  const totals = {
+    dollar: 0,
+    tl: 0,
+    quarterGold: 0,
+    gramGold: 0,
+    bracelet: 0,
+    otherGold: 0,
+  };
+
+  (person.assets || []).forEach((asset) => {
+    const type = normalizeAssetType(asset.type || asset.kind);
+    totals[type] += getAssetAmount(asset);
+  });
+
+  return totals;
+}
+
+function getAllPersonTotals(persons) {
+  return persons.reduce(
+    (total, person) => {
+      const p = getPersonTotals(person);
+
+      return {
+        dollar: total.dollar + p.dollar,
+        tl: total.tl + p.tl,
+        quarterGold: total.quarterGold + p.quarterGold,
+        gramGold: total.gramGold + p.gramGold,
+        bracelet: total.bracelet + p.bracelet,
+        otherGold: total.otherGold + p.otherGold,
+      };
+    },
+    {
+      dollar: 0,
+      tl: 0,
+      quarterGold: 0,
+      gramGold: 0,
+      bracelet: 0,
+      otherGold: 0,
+    }
+  );
+}
+
+function formatDateTime(date) {
+  if (!date) return "Bilinmiyor";
+
+  return new Date(date).toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function AssetsPage({ account, goBack, updateAccountPersons }) {
   const records = account.records || [];
   const persons = account.persons || [];
 
-  const [page, setPage] = useState("home");
   const [selectedPersonId, setSelectedPersonId] = useState(null);
+  const [addingPerson, setAddingPerson] = useState(false);
+  const [addingAsset, setAddingAsset] = useState(false);
 
   const [personName, setPersonName] = useState("");
-  const [assetKind, setAssetKind] = useState("try");
   const [assetTitle, setAssetTitle] = useState("");
+  const [assetType, setAssetType] = useState("dollar");
   const [assetAmount, setAssetAmount] = useState("");
-  const [assetQuantity, setAssetQuantity] = useState("");
   const [assetDate, setAssetDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const summary = getSummary(records, persons);
-  const selectedPerson = persons.find((person) => person.id === selectedPersonId);
+  const [rates, setRates] = useState(() => {
+    const saved = localStorage.getItem("kolayMuhasebeRates");
+    return saved
+      ? JSON.parse(saved)
+      : {
+          usdTry: 0,
+          gramGoldTry: 0,
+          quarterGoldTry: 0,
+          updatedAt: null,
+          source: "Henüz alınmadı",
+        };
+  });
 
-  const debtTargets = getPaymentTargets(records, false);
-  const incomeTotal = summary.totalFixedIncome + summary.totalExtraIncome;
+  const [rateWarning, setRateWarning] = useState("");
+
+  const summary = getSummary(records);
+
+  const allTotals = useMemo(() => {
+    return getAllPersonTotals(persons);
+  }, [persons]);
+
+  const selectedPerson = persons.find((person) => person.id === selectedPersonId);
+  const selectedTotals = selectedPerson ? getPersonTotals(selectedPerson) : null;
+
+  const goldTry =
+    allTotals.gramGold * rates.gramGoldTry +
+    allTotals.quarterGold * rates.quarterGoldTry +
+    allTotals.bracelet * rates.gramGoldTry +
+    allTotals.otherGold * rates.gramGoldTry;
+
+  const tlAsUsd = rates.usdTry ? allTotals.tl / rates.usdTry : 0;
+  const goldAsUsd = rates.usdTry ? goldTry / rates.usdTry : 0;
+
+  const estimatedTotalUsd =
+    summary.incomeExpected +
+    allTotals.dollar +
+    tlAsUsd +
+    goldAsUsd -
+    summary.mustPay;
+
+  useEffect(() => {
+    async function fetchRates() {
+      try {
+        setRateWarning("");
+
+        const usdResponse = await fetch("https://open.er-api.com/v6/latest/USD");
+        const usdData = await usdResponse.json();
+        const usdTry = Number(usdData?.rates?.TRY || 0);
+
+        let gramGoldTry = 0;
+
+        try {
+          const goldResponse = await fetch("https://api.gold-api.com/price/XAU");
+          const goldData = await goldResponse.json();
+          const ounceUsd = Number(goldData?.price || 0);
+
+          if (ounceUsd && usdTry) {
+            gramGoldTry = (ounceUsd / 31.1035) * usdTry;
+          }
+        } catch {
+          gramGoldTry = Number(rates.gramGoldTry || 0);
+        }
+
+        const nextRates = {
+          usdTry,
+          gramGoldTry,
+          quarterGoldTry: gramGoldTry * 1.75,
+          updatedAt: new Date().toISOString(),
+          source: "Anlık piyasa verisi",
+        };
+
+        if (!usdTry) {
+          throw new Error("Kur alınamadı");
+        }
+
+        setRates(nextRates);
+        localStorage.setItem("kolayMuhasebeRates", JSON.stringify(nextRates));
+
+        if (!gramGoldTry) {
+          setRateWarning("Altın kuru alınamadı, varsa son kayıtlı kur kullanıldı.");
+        }
+      } catch {
+        setRateWarning("Kur alınamadı, son kayıtlı kurla hesaplandı.");
+      }
+    }
+
+    fetchRates();
+  }, []);
 
   function savePersons(nextPersons) {
     updateAccountPersons(account.id, nextPersons);
@@ -42,32 +194,23 @@ function AssetsPage({ account, goBack, updateAccountPersons }) {
 
     savePersons([newPerson, ...persons]);
     setPersonName("");
-    setPage("home");
+    setAddingPerson(false);
   }
 
-  function openPerson(person) {
-    setSelectedPersonId(person.id);
-    setPage("person");
-  }
-
-  function addAssetToPerson() {
+  function addAsset() {
     if (!selectedPerson) return;
-
-    const isMoney = assetKind === "try" || assetKind === "usd";
-
-    if (isMoney && !assetAmount) return;
-    if (!isMoney && !assetQuantity) return;
+    if (!assetTitle.trim()) return;
+    if (!assetAmount) return;
 
     const newAsset = {
       id: Date.now(),
-      kind: assetKind,
-      title: assetTitle.trim() || assetLabels[assetKind],
-      amount: isMoney ? Number(assetAmount) : 0,
-      quantity: isMoney ? 0 : Number(assetQuantity),
+      title: assetTitle.trim(),
+      type: assetType,
+      amount: Number(assetAmount),
       date: assetDate,
     };
 
-    const updatedPersons = persons.map((person) =>
+    const nextPersons = persons.map((person) =>
       person.id === selectedPerson.id
         ? {
             ...person,
@@ -76,23 +219,22 @@ function AssetsPage({ account, goBack, updateAccountPersons }) {
         : person
     );
 
-    savePersons(updatedPersons);
+    savePersons(nextPersons);
 
-    setAssetKind("try");
     setAssetTitle("");
+    setAssetType("dollar");
     setAssetAmount("");
-    setAssetQuantity("");
     setAssetDate(new Date().toISOString().slice(0, 10));
-    setPage("person");
+    setAddingAsset(false);
   }
 
-  function removeAssetFromPerson(assetId) {
+  function removeAsset(assetId) {
     if (!selectedPerson) return;
 
     const ok = window.confirm("Bu varlık geri alındı / silinsin mi?");
     if (!ok) return;
 
-    const updatedPersons = persons.map((person) =>
+    const nextPersons = persons.map((person) =>
       person.id === selectedPerson.id
         ? {
             ...person,
@@ -101,129 +243,13 @@ function AssetsPage({ account, goBack, updateAccountPersons }) {
         : person
     );
 
-    savePersons(updatedPersons);
+    savePersons(nextPersons);
   }
 
-  function formatAsset(asset) {
-    if (asset.kind === "usd") {
-      return money(asset.amount, "USD");
-    }
-
-    if (asset.kind === "try") {
-      return money(asset.amount, "TRY");
-    }
-
-    return `${asset.quantity} ${asset.title || assetLabels[asset.kind]}`;
-  }
-
-  function personAssetSummary(person) {
-    const result = {
-      usd: 0,
-      try: 0,
-      quarterGold: 0,
-      gramGold: 0,
-      bracelet: 0,
-      otherGold: 0,
-      otherAsset: 0,
-    };
-
-    (person.assets || []).forEach((asset) => {
-      if (asset.kind === "usd") {
-        result.usd += Number(asset.amount || 0);
-      } else if (asset.kind === "try") {
-        result.try += Number(asset.amount || 0);
-      } else {
-        result[asset.kind] += Number(asset.quantity || 0);
-      }
-    });
-
-    return result;
-  }
-
-  if (page === "addPerson") {
+  if (selectedPerson) {
     return (
       <div className="app">
-        <Header title="Kişi Ekle" back={() => setPage("home")} />
-
-        <div className="form-card">
-          <input
-            placeholder="Kişi adı: Annem, Babam, Ahmet..."
-            value={personName}
-            onChange={(e) => setPersonName(e.target.value)}
-          />
-
-          <button onClick={addPerson}>Kişiyi Kaydet</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (page === "addAsset" && selectedPerson) {
-    const isMoney = assetKind === "try" || assetKind === "usd";
-
-    return (
-      <div className="app">
-        <Header
-          title={`${selectedPerson.name} İçin Varlık Ekle`}
-          back={() => setPage("person")}
-        />
-
-        <div className="form-card">
-          <select
-            value={assetKind}
-            onChange={(e) => {
-              setAssetKind(e.target.value);
-              setAssetAmount("");
-              setAssetQuantity("");
-            }}
-          >
-            {Object.keys(assetLabels).map((key) => (
-              <option key={key} value={key}>
-                {assetLabels[key]}
-              </option>
-            ))}
-          </select>
-
-          <input
-            placeholder="Başlık yazmak istersen"
-            value={assetTitle}
-            onChange={(e) => setAssetTitle(e.target.value)}
-          />
-
-          {isMoney ? (
-            <input
-              type="number"
-              placeholder={assetKind === "try" ? "Tutar yaz (TL)" : "Tutar yaz ($)"}
-              value={assetAmount}
-              onChange={(e) => setAssetAmount(e.target.value)}
-            />
-          ) : (
-            <input
-              type="number"
-              placeholder="Adet / miktar yaz"
-              value={assetQuantity}
-              onChange={(e) => setAssetQuantity(e.target.value)}
-            />
-          )}
-
-          <input
-            type="date"
-            value={assetDate}
-            onChange={(e) => setAssetDate(e.target.value)}
-          />
-
-          <button onClick={addAssetToPerson}>Varlığı Kaydet</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (page === "person" && selectedPerson) {
-    const s = personAssetSummary(selectedPerson);
-
-    return (
-      <div className="app">
-        <Header title={selectedPerson.name} back={() => setPage("home")} />
+        <Header title={selectedPerson.name} back={() => setSelectedPersonId(null)} />
 
         <div className="asset-overview-card">
           <h2>{selectedPerson.name} Varlıkları</h2>
@@ -231,73 +257,119 @@ function AssetsPage({ account, goBack, updateAccountPersons }) {
           <div className="asset-mini-grid">
             <div>
               Dolar
-              <b>{money(s.usd, "USD")}</b>
+              <b>{money(selectedTotals.dollar)}</b>
             </div>
 
             <div>
               Türk Lirası
-              <b>{money(s.try, "TRY")}</b>
+              <b>{money(selectedTotals.tl, "TRY")}</b>
             </div>
 
             <div>
               Çeyrek Altın
-              <b>{s.quarterGold}</b>
+              <b>{selectedTotals.quarterGold}</b>
             </div>
 
             <div>
               Gram Altın
-              <b>{s.gramGold}</b>
+              <b>{selectedTotals.gramGold}</b>
             </div>
 
             <div>
               Bilezik
-              <b>{s.bracelet}</b>
+              <b>{selectedTotals.bracelet}</b>
             </div>
 
             <div>
               Diğer Altın
-              <b>{s.otherGold}</b>
+              <b>{selectedTotals.otherGold}</b>
             </div>
           </div>
         </div>
 
         <div className="home-actions">
-          <button onClick={() => setPage("addAsset")}>Varlık Ekle</button>
-          <button onClick={() => setPage("home")}>Kişilere Dön</button>
+          <button onClick={() => setAddingAsset(true)}>Varlık Ekle</button>
+          <button onClick={() => setSelectedPersonId(null)}>Kişilere Dön</button>
         </div>
+
+        {addingAsset && (
+          <div className="form-card">
+            <input
+              placeholder="Varlık adı: Kamera, para, altın..."
+              value={assetTitle}
+              onChange={(e) => setAssetTitle(e.target.value)}
+            />
+
+            <select
+              value={assetType}
+              onChange={(e) => setAssetType(e.target.value)}
+            >
+              <option value="dollar">Dolar</option>
+              <option value="tl">Türk Lirası</option>
+              <option value="quarterGold">Çeyrek Altın</option>
+              <option value="gramGold">Gram Altın</option>
+              <option value="bracelet">Bilezik</option>
+              <option value="otherGold">Diğer Altın</option>
+            </select>
+
+            <input
+              type="number"
+              placeholder="Tutar / adet"
+              value={assetAmount}
+              onChange={(e) => setAssetAmount(e.target.value)}
+            />
+
+            <input
+              type="date"
+              value={assetDate}
+              onChange={(e) => setAssetDate(e.target.value)}
+            />
+
+            <button onClick={addAsset}>Kaydet</button>
+
+            <button
+              className="danger-mini-button"
+              onClick={() => setAddingAsset(false)}
+            >
+              Vazgeç
+            </button>
+          </div>
+        )}
 
         <div className="records">
           <h2>Liste</h2>
 
           {(selectedPerson.assets || []).length === 0 && (
-            <p className="subtitle">Bu kişi için henüz varlık yok.</p>
+            <p className="subtitle">Bu kişide kayıtlı varlık yok.</p>
           )}
 
-          {(selectedPerson.assets || []).map((asset) => (
-            <div className="record" key={asset.id}>
-              <div>
-                <h3>{asset.title || assetLabels[asset.kind]}</h3>
-                <p>{assetLabels[asset.kind]} • {asset.date}</p>
+          {(selectedPerson.assets || []).map((asset) => {
+            const type = normalizeAssetType(asset.type || asset.kind);
+            const value = getAssetAmount(asset);
+            const isMoney = type === "dollar" || type === "tl";
 
-                <button
-                  onClick={() => removeAssetFromPerson(asset.id)}
-                  style={{
-                    marginTop: "10px",
-                    border: "none",
-                    background: "#7f1d1d",
-                    color: "white",
-                    padding: "9px 12px",
-                    borderRadius: "12px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Geri Aldım / Sil
-                </button>
+            return (
+              <div className="record edit-record" key={asset.id}>
+                <div>
+                  <h3>{asset.title}</h3>
+                  <p>{assetLabels[type]} • {asset.date}</p>
+
+                  <button
+                    className="danger-mini-button"
+                    onClick={() => removeAsset(asset.id)}
+                  >
+                    Geri Aldım / Sil
+                  </button>
+                </div>
+
+                <strong>
+                  {isMoney
+                    ? money(value, type === "tl" ? "TRY" : "USD")
+                    : value}
+                </strong>
               </div>
-
-              <strong>{formatAsset(asset)}</strong>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -308,66 +380,105 @@ function AssetsPage({ account, goBack, updateAccountPersons }) {
       <Header title="Varlıklarım" back={goBack} />
 
       <div className="asset-main-card">
-        <p>Normalde cebimde olması gereken para</p>
-        <h2>{money(summary.normalPocketMoney)}</h2>
+        <p>Tahmini Toplam Varlıklarım</p>
+        <h2>{money(estimatedTotalUsd)}</h2>
 
-        <div className="asset-lines">
-          <span>Gelirlerim: {money(incomeTotal)}</span>
-          <span>Borçlarım: {money(summary.realDebtRemaining)}</span>
-          <span>TR’deki Para: {money(summary.totalTurkeyMoney, "TRY")}</span>
+        <div className="asset-mini-grid">
+          <div>
+            Dolar
+            <b>{money(allTotals.dollar)}</b>
+          </div>
+
+          <div>
+            Türk Lirası
+            <b>{money(allTotals.tl, "TRY")}</b>
+          </div>
+
+          <div>
+            Çeyrek Altın
+            <b>{allTotals.quarterGold}</b>
+          </div>
+
+          <div>
+            Gram Altın
+            <b>{allTotals.gramGold}</b>
+          </div>
+
+          <div>
+            Bilezik
+            <b>{allTotals.bracelet}</b>
+          </div>
+
+          <div>
+            Diğer Altın
+            <b>{allTotals.otherGold}</b>
+          </div>
+        </div>
+
+        <div className="asset-lines" style={{ marginTop: "12px" }}>
+          <span>Gelirlerim: {money(summary.incomeExpected)}</span>
+          <span>Borçlarım: {money(summary.mustPay)}</span>
+          <span>USD/TRY: {rates.usdTry ? rates.usdTry.toFixed(2) : "Yok"}</span>
+          <span>
+            Gram Altın:{" "}
+            {rates.gramGoldTry ? money(rates.gramGoldTry, "TRY") : "Yok"}
+          </span>
         </div>
       </div>
 
       <div className="helper-card">
         <p>
-          Emanet Para bu hesaba katılmaz. TR’deki Para ayrı gösterilir. Altın ve
-          kişi bazlı varlıklar ayrıca takip edilir.
+          Son güncelleme: {formatDateTime(rates.updatedAt)} • İnternet yoksa son
+          kayıtlı kur kullanılır. {rateWarning}
         </p>
       </div>
 
-      {debtTargets.length > 0 && (
-        <div className="records">
-          <h2>Borçlardan Düşülenler</h2>
+      <div className="section-head">
+        <h2>Kişiler</h2>
+        <button onClick={() => setAddingPerson(true)}>+ Kişi</button>
+      </div>
 
-          {debtTargets.map((item) => (
-            <div className="record" key={item.name}>
-              <div>
-                <h3>{item.name}</h3>
-                <p>Kalan borç</p>
-              </div>
+      {addingPerson && (
+        <div className="form-card">
+          <input
+            placeholder="Kişi adı: Annem, Soner..."
+            value={personName}
+            onChange={(e) => setPersonName(e.target.value)}
+          />
 
-              <strong>{money(item.remaining)}</strong>
-            </div>
-          ))}
+          <button onClick={addPerson}>Kişiyi Kaydet</button>
+
+          <button
+            className="danger-mini-button"
+            onClick={() => setAddingPerson(false)}
+          >
+            Vazgeç
+          </button>
         </div>
       )}
 
       <div className="records">
-        <div className="section-head">
-          <h2>Kişiler</h2>
-          <button onClick={() => setPage("addPerson")}>+ Kişi</button>
-        </div>
-
-        {persons.length === 0 && (
-          <p className="subtitle">
-            Henüz kişi yok. Mesela Annem diye kişi ekleyip ona TL, dolar veya
-            altın ekleyebilirsin.
-          </p>
-        )}
+        {persons.length === 0 && <p className="subtitle">Henüz kişi yok.</p>}
 
         {persons.map((person) => {
-          const s = personAssetSummary(person);
+          const totals = getPersonTotals(person);
+          const goldTotal =
+            totals.quarterGold +
+            totals.gramGold +
+            totals.bracelet +
+            totals.otherGold;
 
           return (
             <div
-              key={person.id}
               className="record"
-              onClick={() => openPerson(person)}
+              key={person.id}
+              onClick={() => setSelectedPersonId(person.id)}
             >
               <div>
                 <h3>{person.name}</h3>
                 <p>
-                  {money(s.usd, "USD")} • {money(s.try, "TRY")} • Altınlar
+                  {money(totals.dollar)} • {money(totals.tl, "TRY")} • Altınlar:{" "}
+                  {goldTotal}
                 </p>
               </div>
 
